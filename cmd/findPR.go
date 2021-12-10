@@ -13,8 +13,10 @@ import (
 	"github.com/elastic/elastic-agent-changelog-tool/internal/findPR"
 )
 
-const findPRLongDescription = `Use this command to find the original PR (i.e. not backports) that included the commit in the repository. 
-								The --repo option is not required and the default value if not provided is elastic/beats.`
+const (
+	findPRLongDescription = `Use this command to find the original PR that included the commit in the repository.`
+	owner                 = "elastic"
+)
 
 // Initial setup of the command
 func setupFindPRCommand() *cobraext.Command {
@@ -25,18 +27,24 @@ func setupFindPRCommand() *cobraext.Command {
 		RunE:  findPRCommandAction,
 	}
 
+	cmd.Flags().String(cobraext.RepositoryFlagName, "beats", cobraext.RepositoryFlagDescription)
+
 	return cobraext.NewCommand(cmd, cobraext.ContextPackage)
 }
 
 // Command action
 func findPRCommandAction(cmd *cobra.Command, args []string) error {
-	var repo string
-	var commitHash string = "191a0752b5ceddc7b7657a517b90ca76c1350f30"
-	var owner = "elastic"
 	cmd.Println("Find the original Pull Request")
 
+	var commitHash string
+
+	repo, err := cmd.Flags().GetString(cobraext.RepositoryFlagName)
+	if err != nil {
+		return errors.Wrapf(err, "can't read %s flag:", cobraext.RepositoryFlagName)
+	}
+
 	// Setup GitHub
-	err := github.EnsureAuthConfigured()
+	err = github.EnsureAuthConfigured()
 	if err != nil {
 		return errors.Wrap(err, "GitHub auth configuration failed")
 	}
@@ -52,12 +60,6 @@ func findPRCommandAction(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "fetching GitHub user failed")
 	}
 	cmd.Printf("Current GitHub user: %s\n", githubUser)
-
-	if len(args) > 0 {
-		repo = args[0]
-	} else {
-		repo = "beats"
-	}
 
 	// Find the original PR
 	originalPRNumber, err := findPR.Find(githubClient, owner, repo, commitHash)
