@@ -32,6 +32,7 @@ func setupFindPRCommand() *cobraext.Command {
 func findPRCommandAction(cmd *cobra.Command, args []string) error {
 	var repo string
 	var commitHash string = "191a0752b5ceddc7b7657a517b90ca76c1350f30"
+	var owner = "elastic"
 	cmd.Println("Find the original Pull Request")
 
 	// Setup GitHub
@@ -55,15 +56,18 @@ func findPRCommandAction(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		repo = args[0]
 	} else {
-		repo = "elastic/beats"
+		repo = "beats"
 	}
 
 	// Find the original PR
-	err = findPR.Find(githubUser, githubClient, repo, commitHash)
+	originalPRNumber, err := findPR.Find(githubClient, owner, repo, commitHash)
 	if err != nil {
 		return errors.Wrap(err, "can't find the PR")
+	} else {
+		cmd.Printf("Original PR number is", originalPRNumber)
 	}
 
+	cmd.Println(commitHash, ":", originalPRNumber)
 	cmd.Println("Done")
 	return nil
 }
